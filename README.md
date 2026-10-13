@@ -1,295 +1,164 @@
 # 🎥 YouTube RAG Assistant
 
-A Chrome extension that allows users to ask questions about a YouTube video and get answers based on the video's transcript.
+A full-stack AI application combining a **FastAPI backend** and a **Google Chrome Extension (Manifest V3)** that enables interactive **Retrieval-Augmented Generation (RAG)** over YouTube video transcripts. Ask questions in real-time about any video you are watching and get accurate, context-grounded answers.
 
-This project uses **LangChain, Retrieval-Augmented Generation (RAG), FAISS, Hugging Face, FastAPI, and Chrome Extension APIs** to build an end-to-end AI application.
+---
 
 ## 🚀 Features
 
-- 🎥 Load a YouTube video
-- 📝 Extract the video's transcript
-- ✂️ Split the transcript into smaller chunks
-- 🔢 Generate embeddings for transcript chunks
-- 🔎 Retrieve relevant information using FAISS
-- 🤖 Generate answers using an LLM
-- 💬 Ask questions about the video
-- ⚡ FastAPI backend
-- 🌐 Chrome extension interface
-- 🚫 Handles videos without available subtitles
+- **Floating In-Page Chat Widget**: An interactive `🤖 Ask AI` button and chat panel injected directly into the YouTube player page.
+- **Chrome Extension Toolbar Popup**: Clean popup UI accessible directly from your browser's toolbar.
+- **Automatic Video Navigation Detection**: Monitors YouTube's Single Page Application (SPA) navigation and automatically loads transcripts when you switch videos.
+- **Smart Transcript Handling**: Prefers English and human-uploaded subtitles before falling back to auto-generated subtitles using `youtube-transcript-api`.
+- **Fast Local Embeddings & Vector Search**: Chunks text via `RecursiveCharacterTextSplitter` and computes dense embeddings locally using `sentence-transformers/all-MiniLM-L6-v2` stored in an in-memory `FAISS` index.
+- **Hallucination Guardrails**: The LLM prompt strictly grounds answers within the retrieved context chunks and safely admits when information is not covered by the video.
 
-## 🏗️ Architecture
-
-```text
-YouTube Video
-      │
-      ▼
-YouTube Transcript
-      │
-      ▼
-Text Splitting
-      │
-      ▼
-Embeddings
-      │
-      ▼
-FAISS Vector Store
-      │
-      ▼
-Retriever
-      │
-      ▼
-Relevant Context
-      │
-      ▼
-Prompt
-      │
-      ▼
-LLM
-      │
-      ▼
-Answer
-      │
-      ▼
-Chrome Extension
-```
+---
 
 ## 🛠️ Tech Stack
 
-### Backend
+- **Backend**: Python 3.10+, FastAPI, Uvicorn
+- **AI / LLM Orchestration**: LangChain, LangChain Core, LangChain Community, LangChain Hugging Face
+- **Embeddings & Vector Store**: `sentence-transformers/all-MiniLM-L6-v2`, FAISS (Facebook AI Similarity Search)
+- **Model Inference**: Hugging Face Inference API (`ChatHuggingFace` / `HuggingFaceEndpoint`)
+- **Frontend**: Chrome Extension (Manifest V3), HTML5, CSS3, Vanilla JavaScript
 
-- Python
-- FastAPI
-- Uvicorn
+---
 
-### AI / RAG
-
-- LangChain
-- Hugging Face
-- FAISS
-- Sentence Transformers
-- YouTube Transcript API
-
-### Frontend
-
-- HTML
-- CSS
-- JavaScript
-- Chrome Extension APIs
-
-## 📁 Project Structure
+## 📂 Project Structure
 
 ```text
 youtube-rag-extension/
-│
-├── extension/
-│   ├── manifest.json
-│   ├── popup.html
-│   ├── popup.js
-│   └── ...
-│
-├── main.py
-├── youtube.py
-├── test_youtube.py
-├── requirements.txt
-├── .gitignore
-└── README.md
+├── extension/                  # Chrome Extension (Manifest V3)
+│   ├── manifest.json           # Extension permissions and metadata
+│   ├── content.js              # In-page overlay widget & URL change watcher
+│   ├── popup.html              # Extension toolbar popup layout
+│   └── popup.js                # Toolbar popup interaction logic
+├── main.py                     # FastAPI REST API endpoints & CORS setup
+├── youtube.py                  # Core RAG pipeline (transcripts, embeddings, FAISS, LCEL)
+├── test_youtube.py             # CLI test script to verify RAG on a sample video
+├── requirements.txt            # Python dependencies
+├── .env.example                # Example environment variables template
+├── .env                        # Local environment variables (ignored by git)
+└── README.md                   # Project documentation
 ```
 
-## ⚙️ Setup
+---
 
-### 1. Clone the Repository
+## ⚙️ Prerequisites
+
+1. **Python 3.10+** installed on your system.
+2. **Google Chrome** (or any Chromium-based browser like Brave, Edge, Opera).
+3. A **Hugging Face API Token** (free account token from [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)).
+
+---
+
+## 📥 Installation & Setup
+
+### 1. Clone & Set Up Python Environment
 
 ```bash
-git clone https://github.com/Bhavya0420/youtube-rag-extension.git
+# Clone the repository (if applicable) or navigate to the directory
 cd youtube-rag-extension
-```
 
-### 2. Create a Virtual Environment
-
-```bash
+# Create a virtual environment
 python -m venv venv
-```
 
-Activate it on Windows:
+# Activate the virtual environment
+# On Windows (PowerShell):
+.\venv\Scripts\Activate.ps1
+# On Windows (cmd):
+.\venv\Scripts\activate.bat
+# On macOS/Linux:
+source venv/bin/activate
 
-```powershell
-.\venv\Scripts\activate
-```
-
-### 3. Install Dependencies
-
-```bash
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-### 4. Configure Environment Variables
+### 2. Configure Environment Variables
 
-Create a `.env` file in the project root:
-
-```env
-HUGGINGFACEHUB_API_TOKEN=your_huggingface_api_key
-```
-
-Replace `your_huggingface_api_key` with your Hugging Face API key.
-
-**Never commit your `.env` file to GitHub.**
-
-## ▶️ Run the Backend
-
-Start the FastAPI server:
+Copy the example environment file and add your token:
 
 ```bash
-uvicorn main:app --reload
+# On Windows (PowerShell):
+Copy-Item .env.example .env
+
+# On macOS/Linux:
+cp .env.example .env
 ```
 
-The backend will run at:
+Open `.env` and set your Hugging Face API key:
 
-```text
-http://127.0.0.1:8000
+```env
+HF_TOKEN="your_huggingface_api_token_here"
 ```
 
-FastAPI interactive documentation:
+---
 
-```text
-http://127.0.0.1:8000/docs
+## 🚀 Running the Project
+
+### Step 1: Start the FastAPI Backend
+
+Run the server using Uvicorn:
+
+```bash
+uvicorn main:app --reload --port 8000
 ```
 
-## 🧩 Load the Chrome Extension
+The backend will start at `http://127.0.0.1:8000`. You can test it by visiting:
+- Health check: [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
+- Interactive API Docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
-1. Open Google Chrome.
-2. Navigate to:
+### Step 2: Install the Chrome Extension
 
-```text
-chrome://extensions/
+1. Open your browser and navigate to `chrome://extensions/`.
+2. Toggle **Developer mode** on (top-right corner).
+3. Click **Load unpacked** (top-left).
+4. Select the `extension` folder located inside this project (`youtube-rag-extension/extension`).
+5. The **YouTube RAG Assistant** icon should now appear in your browser extensions list.
+
+---
+
+## 💡 How to Use
+
+1. Ensure the FastAPI backend is running on port `8000`.
+2. Open any video on [YouTube](https://www.youtube.com) (make sure captions/subtitles are available for the video).
+3. **Using the In-Page Widget**:
+   - Look at the bottom-right corner of the YouTube page for the floating **"🤖 Ask AI"** button.
+   - Click it to toggle the chat panel.
+   - Wait until it displays `✓ Video ready`.
+   - Enter your question in the input box and click **Ask**.
+4. **Using the Extension Toolbar**:
+   - Click the extension icon in your Chrome toolbar.
+   - Click **"📺 Load Current Video"**.
+   - Type your question and click **"✨ Ask Question"**.
+
+---
+
+## 📡 API Endpoints
+
+| Method | Endpoint | Query Param | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/` | None | Health check endpoint. |
+| `POST` | `/load-video` | `url` (string) | Fetches the video transcript, chunks it, generates embeddings, and creates the FAISS vector index. |
+| `POST` | `/ask` | `question` (string) | Queries the active video's vector store and generates an answer using the LLM. |
+
+---
+
+## 🧪 Testing Locally via CLI
+
+You can verify the RAG pipeline directly without opening the browser:
+
+```bash
+python test_youtube.py
 ```
 
-3. Enable **Developer mode**.
-4. Click **Load unpacked**.
-5. Select the project's `extension/` folder.
-6. Open a YouTube video.
-7. Use the extension to load the video.
-8. Ask questions about the video.
+This script loads a sample YouTube video, extracts its transcript, creates the FAISS index, and asks `"What is this video about?"`.
 
-## 🔄 How RAG Works
+---
 
-The application follows a Retrieval-Augmented Generation pipeline.
+## 📝 License
 
-### 1. Extract Transcript
+This project is open-source and available under the [MIT License](LICENSE).
 
-The application retrieves the available transcript from the YouTube video.
-
-### 2. Split the Transcript
-
-The transcript is divided into smaller chunks using a text splitter.
-
-### 3. Create Embeddings
-
-Each chunk is converted into a vector representation using a sentence-transformer embedding model.
-
-### 4. Store Embeddings
-
-The embeddings are stored in a FAISS vector database.
-
-### 5. Retrieve Relevant Context
-
-When the user asks a question, the retriever searches the vector store and finds the most relevant transcript chunks.
-
-### 6. Augment the Prompt
-
-The retrieved transcript content is provided as context to the LLM.
-
-### 7. Generate the Answer
-
-The LLM generates an answer based on the retrieved context from the YouTube video.
-
-```text
-User Question
-      │
-      ▼
-Retriever
-      │
-      ▼
-Relevant Transcript Chunks
-      │
-      ▼
-Context + Question
-      │
-      ▼
-Prompt
-      │
-      ▼
-LLM
-      │
-      ▼
-Answer
-```
-
-## 🔌 API Endpoints
-
-### `GET /`
-
-Checks whether the backend is running.
-
-### `POST /load-video`
-
-Loads a YouTube video, retrieves its transcript, creates embeddings, builds the FAISS vector store, and prepares the RAG pipeline.
-
-Example:
-
-```text
-POST /load-video?url=YOUTUBE_VIDEO_URL
-```
-
-### `POST /ask`
-
-Asks a question about the currently loaded video.
-
-Example:
-
-```text
-POST /ask?question=What is this video about?
-```
-
-## ⚠️ Limitations
-
-- The YouTube video must have an accessible transcript or subtitle.
-- Videos with subtitles disabled cannot currently be processed.
-- The backend needs to be running locally.
-- The application currently processes one loaded video at a time.
-- LLM availability and API limits depend on the Hugging Face model/provider being used.
-
-## 🔮 Future Improvements
-- [ ] Improve the Chrome extension UI
-- [ ] Support more transcript languages
-- [ ] Add conversation history
-- [ ] Allow users to switch between videos easily
-- [ ] Improve error handling
-- [ ] Deploy the backend to the cloud
-- [ ] Add streaming responses
-- [ ] Add video summarization
-- [ ] Add timestamp-based answers
-
-## 📚 What I Learned
-
-Through this project, I explored and implemented:
-
-- Retrieval-Augmented Generation (RAG)
-- LangChain Runnable pipelines
-- Prompt templates
-- Embeddings
-- Vector databases
-- FAISS similarity search
-- YouTube transcript extraction
-- FastAPI APIs
-- Chrome Extension development
-- Connecting an AI backend with a frontend
-
-## 👩‍💻 Author
-
-**Bhavya Sree Manam**
-
-Built as a learning project while exploring **LangChain, RAG, and Agentic AI**.
-
-## ⭐ Acknowledgements
-
-This project was built as part of my learning journey into **Generative AI, LangChain, RAG, and AI-powered applications**.
